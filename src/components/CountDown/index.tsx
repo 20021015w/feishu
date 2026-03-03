@@ -1,44 +1,18 @@
 import './style.scss';
 import React, { useLayoutEffect, useMemo } from 'react';
+import { dashboard, bitable, DashboardState, IConfig } from "@lark-base-open/js-sdk";
 import { Button, DatePicker, ConfigProvider, Checkbox, Row, Col, Input, Switch } from '@douyinfe/semi-ui';
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { getTime } from './utils';
 import { useConfig } from '../../hooks';
 import dayjs from 'dayjs';
+import classnames from 'classnames'
 import { useTranslation } from 'react-i18next';
 import { TFunction } from 'i18next/typescript/t';
 import YearProgressWidget from '../Progress';
 
-// 尝试导入飞书SDK，如果失败则使用空对象
-let dashboard: any = {};
-let DashboardState: any = {};
-let IConfig: any = {};
-
-try {
-  const sdk = require("@lark-base-open/js-sdk");
-  dashboard = sdk.dashboard || {};
-  DashboardState = sdk.DashboardState || {};
-  IConfig = sdk.IConfig || {};
-} catch (e) {
-  console.log('飞书SDK未加载，使用默认值');
-  // 模拟飞书环境状态，确保组件能正常渲染
-  dashboard = {
-    state: 'preview',
-    getTheme: () => Promise.resolve({ chartBgColor: '#ffffff', theme: 'light' }),
-    onThemeChange: () => () => {},
-    getConfig: () => Promise.resolve({}),
-    onConfigChange: () => () => {},
-    saveConfig: () => {},
-    setRendered: () => {}
-  };
-  DashboardState = {
-    Config: 'config',
-    Create: 'create'
-  };
-  IConfig = {};
-}
-
 /** 符合convertTimestamp的日期格式 */
+const titleDateReg = /\d{4}-\d{1,2}-\d{1,2}\s\d+:\d+:\d{1,2}/
 
 interface ICountDownConfig {
   color: string;
@@ -49,6 +23,8 @@ interface ICountDownConfig {
   title: string,
   showTitle: boolean,
 }
+
+const othersConfigKey: { key: string, title: string }[] = []
 
 const defaultOthersConfig = ['showTitle']
 
@@ -147,12 +123,12 @@ export default function CountDown(props: { bgColor: string }) {
   useConfig(updateConfig)
 
   return (
-      <>
+     <>
       <YearProgressWidget />
       {
         isConfig && <ConfigPanel t={t} config={config} setConfig={setConfig} availableUnits={availableUnits} />
       }
-      </>
+     </>
   )
 }
 
@@ -163,6 +139,61 @@ interface ICountdownView {
   t: TFunction<"translation", undefined>,
   availableUnits: ReturnType<typeof getAvailableUnits>
 }
+function CountdownView({ config, isConfig, availableUnits, t }: ICountdownView) {
+  const { units, target, color, title } = config
+  const [time, setTime] = useState(target ?? 0);
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setTime(time => {
+        return time - 1;
+      });
+    }, 1000);
+
+    return () => {
+      clearInterval(timer);
+    };
+  }, []);
+
+  const timeCount = getTime({ target: target, units: units.map((v) => availableUnits[v]) })
+
+  if (time <= 0) {
+    return (
+      <div style={{
+        fontSize: 26
+      }}>
+        {t('please.config')}
+      </div>
+    )
+  }
+
+  const numbers = timeCount.units.sort((a, b) => b.unit - a.unit).map(({ count, title }) => {
+    return <div key={title}>
+      <div className={classnames('number', {
+        'number-config': isConfig
+      })}>{count}</div>
+      <div className={classnames('number-title', {
+        'number-title-config': isConfig
+      })}>{title} </div>
+    </div>
+  })
+
+  return (
+    <div style={{ width: '100vw', textAlign: 'center', overflow: 'hidden' }}>
+
+      {config.showTitle ? <p style={{ color }} className={classnames('count-down-title', {
+        'count-down-title-config': isConfig
+      })}>
+        {title.replaceAll(/\{\{\s*time\s*\}\}/g, convertTimestamp(target * 1000))}
+      </p> : null}
+      <div className='number-container' style={{ color }}>
+        <div className='number-container-row'>{numbers.slice(0, Math.ceil(numbers.length / 2))}</div>
+        <div className='number-container-row'>{numbers.slice(Math.ceil(numbers.length / 2))}</div>
+      </div>
+
+    </div>
+  );
+}
+
 /** 格式化显示时间 */
 function convertTimestamp(timestamp: number) {
   return dayjs(timestamp / 1000).format('YYYY-MM-DD HH:mm:ss')
