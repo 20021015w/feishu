@@ -1,6 +1,5 @@
 import './style.scss';
 import React, { useLayoutEffect, useMemo } from 'react';
-import { dashboard, bitable, DashboardState, IConfig } from "@lark-base-open/js-sdk";
 import { Button, DatePicker, ConfigProvider, Checkbox, Row, Col, Input, Switch } from '@douyinfe/semi-ui';
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { getTime } from './utils';
@@ -9,6 +8,35 @@ import dayjs from 'dayjs';
 import { useTranslation } from 'react-i18next';
 import { TFunction } from 'i18next/typescript/t';
 import YearProgressWidget from '../Progress';
+
+// 尝试导入飞书SDK，如果失败则使用空对象
+let dashboard: any = {};
+let DashboardState: any = {};
+let IConfig: any = {};
+
+try {
+  const sdk = require("@lark-base-open/js-sdk");
+  dashboard = sdk.dashboard || {};
+  DashboardState = sdk.DashboardState || {};
+  IConfig = sdk.IConfig || {};
+} catch (e) {
+  console.log('飞书SDK未加载，使用默认值');
+  // 模拟飞书环境状态，确保组件能正常渲染
+  dashboard = {
+    state: 'preview',
+    getTheme: () => Promise.resolve({ chartBgColor: '#ffffff', theme: 'light' }),
+    onThemeChange: () => () => {},
+    getConfig: () => Promise.resolve({}),
+    onConfigChange: () => () => {},
+    saveConfig: () => {},
+    setRendered: () => {}
+  };
+  DashboardState = {
+    Config: 'config',
+    Create: 'create'
+  };
+  IConfig = {};
+}
 
 /** 符合convertTimestamp的日期格式 */
 

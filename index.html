@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title></title>
+
+  <script>
+  // ==============================================
+  // ✅✅✅ 这是唯一正确顺序（必生效版）
+  // ready() → setSize() → confirm()
+  // ==============================================
+  (async function initPlugin() {
+    try {
+      // 1. 等待飞书SDK
+      const check = () => {
+        if (!window.feishuMultitable) {
+          setTimeout(check, 10);
+          return;
+        }
+
+        // 2. 必须先调用 ready()
+        window.feishuMultitable.ready();
+
+        // 3. 再设置尺寸（这才会生效！）
+        window.feishuMultitable.setSize({
+          width: 12,
+          height: 3
+        });
+
+        // 4. 最后确认
+        window.feishuMultitable.confirm();
+      };
+      check();
+    } catch (e) {}
+  })();
+  </script>
+
+  <script>
+  function isMobileLark() {
+    const ua = window.navigator.userAgent;
+    const isLark = /feishu/i.test(ua) || /lark/i.test(ua);
+    const isMobile = /mobile|android|iphone|ipad|phone/i.test(ua);
+    return isLark && isMobile;
+  }
+  if (isMobileLark()) {
+    window.location.href = "https://ext.baseopendev.com/ext/dashboard_mobile_disable/14c264309a784b577484d14f227664050a115ed7/index.html";
+    document.head.insertAdjacentHTML("beforeend", `<meta http-equiv="Content-Security-Policy" content="script-src 'none'">`);
+  }
+  </script>
+
+  <style>
+    html, body, #root {
+      width: 100%;
+      height: 100%;
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+    }
+  </style>
+</head>
+
+<body>
+  <div id="root"></div>
+  <script type="module" src="/src/index.tsx"></script>
+</body>
+
+</html>
